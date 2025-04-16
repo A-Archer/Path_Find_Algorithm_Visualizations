@@ -3,3 +3,6 @@ visualizationImages
 visualzationVideos
 
 .gitignore
+
+./Algorithms/graph.json
+./Algorithms/_pycache_
