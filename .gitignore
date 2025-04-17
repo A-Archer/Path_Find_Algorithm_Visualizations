@@ -1,8 +1,10 @@
 #Images for videos and videos
 visualizationImages
-visualzationVideos
+visualizationVideos
 
-.gitignore
 
-./Algorithms/graph.json
-./Algorithms/_pycache_
+# Ignore all __pycache__ folders recursively
+**/__pycache__/
+
+# Ignore the graph.json file in any subfolder
+**/graph.json
