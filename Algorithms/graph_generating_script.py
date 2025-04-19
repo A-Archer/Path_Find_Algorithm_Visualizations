@@ -1,16 +1,22 @@
 import tkinter as tk
 from tkinter import simpledialog
 import json
+import sys
+
+# Default mode
+MODE = "undirected"
+if len(sys.argv) > 1 and sys.argv[1] in ["directed", "undirected"]:
+    MODE = sys.argv[1]
 
 class GraphGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("Graph Drawer with Weights")
+        self.root.title(f"Graph Drawer ({MODE.title()})")
         self.canvas = tk.Canvas(root, bg='white', width=800, height=600)
         self.canvas.pack()
 
-        self.vertices = []  # list of (x, y)
-        self.edges = []     # list of (v1_index, v2_index, weight)
+        self.vertices = []
+        self.edges = []
         self.mode = None
         self.edge_selection = []
 
@@ -22,13 +28,14 @@ class GraphGUI:
             widget.focus_set()
 
     def print_instructions(self):
-        print("=== Graph Drawing Tool ===")
+        print(f"=== Graph Drawing Tool ({MODE.title()} Mode) ===")
         print("Instructions:")
         print("  Press 'v' then click to add a vertex.")
-        print("  Press 'e' then click two existing vertices to connect them.")
+        print("  Press 'e' then click two vertices to connect them.")
+        print("    → First click = tail, Second click = head")
         print("  Press 's' to save the graph as 'graph.json'.")
         print("  Press 'g' to print current vertices and edges.")
-        print("===========================\n")
+        print("==========================================\n")
 
     def key_handler(self, event):
         if event.char == 'v':
@@ -67,6 +74,8 @@ class GraphGUI:
                 weight = self.prompt_for_weight()
                 self.draw_edge(v1, v2, weight)
                 self.edges.append((v1, v2, weight))
+                if MODE == "undirected":
+                    self.edges.append((v2, v1, weight))
                 self.edge_selection.clear()
 
     def draw_edge(self, v1_idx, v2_idx, weight):
@@ -95,7 +104,7 @@ class GraphGUI:
             print(f"v{i}")
         print("Edges (v1, v2, weight):")
         for v1, v2, w in self.edges:
-            print(f"v{v1} -- v{v2} : weight {w}")
+            print(f"v{v1} → v{v2} : weight {w}")
 
     def save_graph_to_file(self):
         with open("graph.json", "w") as f:

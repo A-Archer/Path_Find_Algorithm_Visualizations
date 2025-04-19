@@ -22,9 +22,9 @@ def setup_directories():
 
 def run_gui_and_load_graph():
     print("Launching graph GUI... Close it after pressing 's' to save.")
-    subprocess.run(["python", "graph_generating_script.py"])
+    subprocess.run(["python", "graph_generating_script.py", "undirected"])
     time.sleep(1)
-    return load_graph()
+    return load_graph(directed=False)
 
 def draw_frame(graph, F, Pr, current_edge, frame_number):
     coords = graph["vertices"]
