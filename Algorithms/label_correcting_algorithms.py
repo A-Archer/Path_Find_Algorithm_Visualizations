@@ -7,6 +7,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import subprocess
 import sys
+from matplotlib.patches import FancyArrowPatch
 from analyze_graph import load_graph
 
 IMG_DIR = "../visualizationImages"
@@ -25,15 +26,18 @@ def run_gui_and_load_graph():
     time.sleep(1)
     return load_graph(directed=True)
 
-def draw_frame(graph, Pr, dd, current_edge, frame_number, relax_happened):
+def draw_frame(graph, Pr, dd, current_edge, frame_number, relax_happened, all_arcs, arc_colors):
     coords = graph["vertices"]
     edges = graph["edges"]
+    adj = graph["adj_matrix"]
 
     fig, axs = plt.subplots(2, 2, figsize=(14, 10))
 
     for i, (x, y) in enumerate(coords):
         axs[0, 0].scatter(x, y, color='black')
         axs[0, 0].text(x, y - 10, f"v{i}", ha='center', fontsize=9)
+        if i == 0:
+            axs[0, 0].text(x, y + 10, "s", ha='center', fontsize=10, color='green')
 
     for v1, v2, w in edges:
         x1, y1 = coords[v1]
@@ -53,12 +57,14 @@ def draw_frame(graph, Pr, dd, current_edge, frame_number, relax_happened):
     for i, (x, y) in enumerate(coords):
         axs[1, 0].scatter(x, y, color='black')
         axs[1, 0].text(x, y - 10, f"v{i}", ha='center', fontsize=9)
+        if i == 0:
+            axs[1, 0].text(x, y + 10, "s", ha='center', fontsize=10, color='green')
 
     for v, u in Pr.items():
         if u is not None:
             x1, y1 = coords[u]
             x2, y2 = coords[v]
-            w = graph["adj_matrix"][u][v]
+            w = adj[u][v]
             axs[1, 0].annotate("",
                               xy=(x2, y2), xycoords='data',
                               xytext=(x1, y1), textcoords='data',
@@ -75,7 +81,22 @@ def draw_frame(graph, Pr, dd, current_edge, frame_number, relax_happened):
         display = f"v{i}: {'inf' if d == float('inf') else round(d, 2)}"
         axs[0, 1].text(0.1, 1 - i * 0.05, display, fontsize=12)
 
+    axs[1, 1].set_title("Arc Scan Pass")
+    axs[1, 1].set_xlim(0, 1)
+    axs[1, 1].set_ylim(0, len(all_arcs))
     axs[1, 1].axis("off")
+
+    for i, (u, v) in enumerate(all_arcs):
+        x_start, y_start = 0.2, len(all_arcs) - i - 0.5
+        x_end = 0.8
+        color = arc_colors.get((u, v), 'gray')
+        arrow = FancyArrowPatch((x_start, y_start), (x_end, y_start),
+                                connectionstyle="arc3,rad=0.0",
+                                arrowstyle="->",
+                                color=color,
+                                lw=2)
+        axs[1, 1].add_patch(arrow)
+        axs[1, 1].text(0.05, y_start, f"v{u} → v{v}", fontsize=8, verticalalignment='center')
 
     plt.tight_layout()
     plt.savefig(os.path.join(IMG_DIR, f"frame_{frame_number:03d}.png"))
@@ -97,34 +118,36 @@ def label_correcting_scan(graph):
 
     dd = {i: float("inf") for i in range(n)}
     Pr = {i: None for i in range(n)}
-    visit_count = {i: 0 for i in range(n)}
     dd[0] = 0
     frame_number = 0
-    draw_frame(graph, Pr, dd, None, frame_number, False)
-    frame_number += 1
 
-    arcs = [(u, v) for u in range(n) for v in range(n) if adj[u][v] != 0]
+    all_arcs = [(u, v) for u in range(n) for v in range(n) if adj[u][v] != 0]
+    arc_colors = {}
+
+    draw_frame(graph, Pr, dd, None, frame_number, False, all_arcs, arc_colors)
+    frame_number += 1
 
     for _ in range(n - 1):
         changed = False
-        for u, v in arcs:
+        for u, v in all_arcs:
             relax_happened = False
             if dd[u] + adj[u][v] < dd[v]:
                 dd[v] = dd[u] + adj[u][v]
                 Pr[v] = u
                 relax_happened = True
                 changed = True
-            draw_frame(graph, Pr, dd, (u, v), frame_number, relax_happened)
+            arc_colors[(u, v)] = 'green' if relax_happened else 'red'
+            draw_frame(graph, Pr, dd, (u, v), frame_number, relax_happened, all_arcs, arc_colors)
             frame_number += 1
         if not changed:
             break
 
-    for u, v in arcs:
+    for u, v in all_arcs:
         if dd[u] + adj[u][v] < dd[v]:
             print("❌ Negative-weight cycle detected. Aborting.")
             return None, None
 
-    draw_frame(graph, Pr, dd, None, frame_number, False)
+    draw_frame(graph, Pr, dd, None, frame_number, False, all_arcs, arc_colors)
     return dd, Pr
 
 def main():
