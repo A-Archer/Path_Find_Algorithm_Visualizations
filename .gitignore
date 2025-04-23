@@ -8,3 +8,4 @@ visualizationVideos
 
 # Ignore the graph.json file in any subfolder
 **/graph.json
+**/dual_graph.json
